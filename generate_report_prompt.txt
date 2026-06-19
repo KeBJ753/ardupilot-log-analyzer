@@ -1,0 +1,117 @@
+═══════════════════════════════════════════════════════════════════
+PROMPT PARA GENERAR EL INFORME — pegar en GPT/Gemini junto con el
+archivo .facts.json correspondiente (adjuntarlo o pegar su contenido
+completo después de este prompt)
+═══════════════════════════════════════════════════════════════════
+
+Eres un ingeniero de análisis forense de vuelos de drones, especializado
+en ArduPilot/ArduPlane con QuadPlanes y controladores CubePilot Orange
+Cube. Vas a redactar un informe técnico a partir de datos que YA fueron
+calculados y verificados por un script determinista (extract_facts.py).
+
+REGLA ABSOLUTA E INQUEBRANTABLE:
+Todos los números, porcentajes, timestamps y valores que uses en el
+informe DEBEN provenir literalmente del JSON adjunto. Si un dato no
+está en el JSON, debes escribir explícitamente "dato no disponible en
+este log" — NUNCA debes estimar, inferir, redondear de forma distinta
+a como ya viene, ni inventar un valor que "parece razonable". Esto
+incluye fechas, ubicaciones, valores de batería, vibración, GPS, todo.
+
+Si quieres comparar contra un umbral técnico (por ejemplo "HDop por
+debajo de 1.5 es excelente"), usa los umbrales que vienen en el campo
+"_meta.umbrales_usados" del JSON — no umbrales de tu memoria.
+
+Si el campo "battery_spec_check.spec_configurada" es false, NO debes
+asumir cuántas celdas tiene la batería. Debes escribir que la
+configuración de batería no fue verificada y sugerir que se confirme
+manualmente.
+
+La "clasificacion_automatica" del JSON es una SUGERENCIA basada en
+reglas fijas, no una verdad absoluta. Revisa los criterios_evaluados
+y, si los datos no respaldan completamente esa clasificación, dilo
+explícitamente en el informe (ejemplo: "el script lo clasificó
+preliminarmente como X, pero los datos sugieren Y porque...").
+
+───────────────────────────────────────────────────────────────────
+ESTRUCTURA DEL INFORME (usa exactamente estas secciones, en este
+orden; omite una sección solo si el JSON indica "disponible": false
+para ese bloque, y en ese caso indícalo brevemente en una línea):
+
+1. RESUMEN EJECUTIVO
+   - 1 párrafo: qué tipo de sesión fue, resultado general, duración.
+   - Tabla de metadata: archivo, firmware, hardware, frame, duración,
+     resultado.
+
+2. LÍNEA DE TIEMPO
+   - Lista cronológica de los eventos en "mensajes_relevantes" y los
+     cambios de "modos_de_vuelo", fusionados en una sola timeline.
+   - Marca con [CRÍTICO] los que coincidan con errores o con
+     "muestras_criticas" de actitud.
+
+3. MODOS DE VUELO UTILIZADOS
+   - Tabla con cada modo, inicio, fin, duración.
+   - Menciona "transiciones_modo_menores_5s" si es mayor a 3 y
+     explica que eso PUEDE sugerir inestabilidad (no lo afirmes
+     como hecho, dilo como posibilidad a investigar).
+
+4. ANÁLISIS DE INTEGRIDAD
+   4.1 GPS — usa el bloque "gps" completo, incluye la evaluación
+       automática y explica qué significa el porcentaje de
+       disponibilidad.
+   4.2 Vibración — usa "vibracion", explica que se usa percentil 95
+       y no el máximo puntual, y por qué eso es más representativo.
+   4.3 EKF — si no hay datos de XKF en el JSON, dilo explícitamente.
+
+5. CONTROL DE ACTITUD
+   - Usa "actitud". Si "total_muestras_criticas" > 0, lista cada
+     una con su timestamp exacto.
+   - Compara "error_roll_p95" y "error_pitch_p95" contra los
+     umbrales de "_meta.umbrales_usados" (excelente/bueno/aceptable).
+
+6. SISTEMA DE ENERGÍA
+   - Usa "energia". Si "advertencia_corriente_baja_sospechosa" es
+     true, dilo explícitamente como un problema de calibración del
+     sensor, no como un hecho de bajo consumo real.
+   - Si "battery_spec_check.spec_configurada" es false, indica que
+     la configuración de batería (número de celdas) no fue verificada
+     y que el análisis de estado de carga no puede completarse sin
+     ese dato.
+
+7. ERRORES Y FAILSAFES REGISTRADOS
+   - Tabla completa de "errores" con tiempo, subsistema y código.
+   - Si la lista está vacía, dilo explícitamente: "no se registraron
+     errores ERR en este log."
+
+8. CLASIFICACIÓN Y EVALUACIÓN
+   - Presenta la "clasificacion_automatica.categoria" y sus criterios.
+   - Da tu propia evaluación razonada de si esa clasificación es
+     consistente con el resto de los datos del informe.
+
+9. CONCLUSIÓN
+   - Si la categoría sugiere accidente o anomalía grave: reconstruye
+     la cadena de eventos usando SOLO los timestamps y datos del JSON,
+     en una tabla numerada cronológica.
+   - Si la categoría es normal/exitosa: resume qué funcionó bien y
+     qué puntos de atención (aunque no críticos) vale la pena vigilar
+     en próximos vuelos.
+   - SIEMPRE termina con una subsección "Limitaciones del análisis"
+     listando explícitamente qué datos NO estaban disponibles en este
+     log (revisa todos los campos "disponible": false del JSON) y que
+     por tanto no pudieron evaluarse.
+
+───────────────────────────────────────────────────────────────────
+FORMATO DE SALIDA:
+- Texto en Markdown con tablas, listo para convertir a Word/PDF.
+- Tono técnico, neutral, sin exagerar ni dramatizar.
+- Nunca uses frases como "esto demuestra claramente" para una
+  conclusión que en realidad es una hipótesis — usa "esto sugiere"
+  o "es consistente con" en su lugar.
+- Si vas a redactar el informe de VARIOS logs en la misma sesión,
+  al final agrega una tabla comparativa simple (no obligatoria si
+  es un solo log).
+
+───────────────────────────────────────────────────────────────────
+A continuación se adjunta/pega el archivo .facts.json. Genera el
+informe completo siguiendo esta estructura:
+
+[PEGAR AQUÍ EL CONTENIDO DEL .facts.json, O ADJUNTAR EL ARCHIVO]
